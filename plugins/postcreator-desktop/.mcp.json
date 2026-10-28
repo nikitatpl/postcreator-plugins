@@ -1,0 +1,1 @@
+{"mcpServers":{"postcreator-desktop":{"command":"node","args":["${CLAUDE_PLUGIN_ROOT}/runtime/src/bootstrap.mjs","serve"]}}}

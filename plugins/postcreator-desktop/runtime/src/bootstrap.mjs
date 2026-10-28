@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+// Runs under an older PATH Node too; selects an existing persistent Node 24+ without installation.
+import{spawn,execFileSync}from'node:child_process';import{readdir,access}from'node:fs/promises';import path from'node:path';import os from'node:os';import{fileURLToPath}from'node:url';
+export async function findNode24({env=process.env,current=process.execPath,platform=process.platform,home=os.homedir()}={}){
+ const executable=platform==='win32'?'node.exe':'node';const candidates=[env.POSTCREATOR_NODE,current,...(env.PATH||'').split(path.delimiter).filter(Boolean).map(dir=>path.join(dir,executable))];
+ // GUI clients on macOS do not inherit the shell PATH, and Homebrew node@24 is keg-only, so look in the usual install places too.
+ if(platform==='darwin')candidates.push('/opt/homebrew/opt/node@24/bin/node','/usr/local/opt/node@24/bin/node','/opt/homebrew/bin/node','/usr/local/bin/node',path.join(home,'.volta','bin','node'));
+ if(platform==='darwin')try{for(const item of(await readdir(path.join(home,'.nvm','versions','node'),{withFileTypes:true})).filter(x=>x.isDirectory()).sort((a,b)=>b.name.localeCompare(a.name,undefined,{numeric:true})))candidates.push(path.join(home,'.nvm','versions','node',item.name,'bin','node'));}catch{}
+ const roots=platform==='win32'?[path.join(env.LOCALAPPDATA||'','Postcreator','node'),path.join(env.LOCALAPPDATA||'','Higgsfield','node')]:[path.join(home,'.local','share','Postcreator','node'),path.join(home,'.higgsfield','node')];
+ for(const root of roots){try{for(const item of(await readdir(root,{withFileTypes:true})).filter(x=>x.isDirectory()).sort((a,b)=>b.name.localeCompare(a.name)))candidates.push(path.join(root,item.name,executable),path.join(root,item.name,'bin',executable));}catch{}}
+ for(const candidate of [...new Set(candidates.filter(Boolean))]){try{await access(candidate);const version=execFileSync(candidate,['--version'],{encoding:'utf8',windowsHide:true,timeout:5000,stdio:['ignore','pipe','ignore']}).trim();if(/^v(\d+)/.test(version)&&Number(/^v(\d+)/.exec(version)[1])>=24)return path.resolve(candidate);}catch{}}
+ throw Error('Установленный Node 24+ не найден. Укажите в POSTCREATOR_NODE постоянный путь к установленному исполняемому файлу или выполните setup через Node 24+. Среда автоматически не скачивается.');
+}
+async function main(){const node=await findNode24();const entry=fileURLToPath(new URL('./cli.mjs',import.meta.url));const child=spawn(node,[entry,...process.argv.slice(2)],{stdio:'inherit',windowsHide:true,shell:false});child.on('error',error=>{process.stderr.write('Не удалось запустить локальное дополнение через Node. Исходная диагностика: '+error.message+'\n');process.exitCode=1;});child.on('exit',code=>{process.exitCode=code??1;});process.on('SIGINT',()=>child.kill('SIGINT'));process.on('SIGTERM',()=>child.kill('SIGTERM'));}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))main().catch(error=>{process.stderr.write(error.message+'\n');process.exitCode=1;});

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "postcreator-desktop",
+  "version": "1.2.0",
+  "description": "Работа с редактируемыми сценами, графикой, монтажом и эффектами в локальных творческих программах.",
+  "author": {
+    "name": "Itsalab",
+    "url": "https://post-creator.ru"
+  },
+  "homepage": "https://post-creator.ru",
+  "keywords": [
+    "desktop",
+    "creative",
+    "blender",
+    "after-effects",
+    "touchdesigner"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Postcreator — локальные редакторы",
+        "shortDescription": "Сцены, монтаж и эффекты на компьютере",
+        "longDescription": "Создавайте и редактируйте сцены и графику в установленных на компьютере программах. Модуль проверяет доступные операции и подключение, сохраняет новые файлы и восстанавливает результат после таймаута без повторной правки.",
+        "developerName": "Itsalab",
+        "category": "Creativity",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://post-creator.ru",
+        "defaultPrompt": [
+          "Собери редактируемую сцену с товаром в Blender",
+          "Проверь подключение моих творческих программ",
+          "Убери провод из кадра в After Effects"
+        ],
+        "brandColor": "#7057F5",
+        "logo": "./assets/icon.svg",
+        "composerIcon": "./assets/icon.svg"
+      }
+    }
+  }
+}

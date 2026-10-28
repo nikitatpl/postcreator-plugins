@@ -1,0 +1,14 @@
+{
+  "name": "postcreator",
+  "version": "1.2.1",
+  "description": "Создание изображений, видео, историй, UGC, маркетинговых материалов, субтитров и анимации через Postcreator.",
+  "author": {
+    "name": "Itsalab",
+    "url": "https://post-creator.ru"
+  },
+  "homepage": "https://post-creator.ru",
+  "repository": "https://github.com/nikitatpl/postcreator",
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "mcpServers": "./.mcp.json"
+}

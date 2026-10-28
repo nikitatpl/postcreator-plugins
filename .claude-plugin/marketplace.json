@@ -1,0 +1,21 @@
+{
+  "name": "itsalab-creative",
+  "owner": {
+    "name": "Itsalab"
+  },
+  "metadata": {
+    "description": "Сценарии создания медиа и локальные творческие редакторы для Postcreator"
+  },
+  "plugins": [
+    {
+      "name": "postcreator",
+      "source": "./plugins/postcreator",
+      "description": "Создание медиа через Postcreator"
+    },
+    {
+      "name": "postcreator-desktop",
+      "source": "./plugins/postcreator-desktop",
+      "description": "Локальные сцены и редакторы; нужны Node24 и установленные программы"
+    }
+  ]
+}

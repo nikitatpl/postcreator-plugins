@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "companionVersion": "1.2.0",
+  "verifiedOn": "2026-10-03",
+  "scope": "Наблюдения на тестовой машине; каждому компьютеру нужна собственная диагностика и реальное подключение",
+  "apps": {
+    "blender": {
+      "implementation": "original-native",
+      "nativeSmoke": "passed",
+      "observedVersion": "4.0.1",
+      "verified": [
+        "сцена, материал, камера и свет",
+        "ключи сборки",
+        "12 настоящих выпуклых ячеек Вороного с проверкой объёма и целостности",
+        "сохранённая физическая симуляция",
+        "PNG и GLB",
+        "правка только цвета с сохранением шероховатости, металличности, альфа и соседних объектов"
+      ],
+      "limits": [
+        "разрушение только выпуклых частей",
+        "48 ячеек,5000 исходных граней,256 физических тел,250 кадров симуляции",
+        "неподдержанные связанные или анимированные цвета отклоняются до изменения",
+        "несохранённая сцена окна автоматически не подключается"
+      ],
+      "test": "desktop/tests/live-fracture.mjs"
+    },
+    "photoshop": {
+      "implementation": "original-closed-host-vbscript-com-and-optional-cep",
+      "nativeSmoke": "passed",
+      "observedVersion": "27.3.0",
+      "channel": "Windows Script Host COM",
+      "verified": [
+        "новый документ и редактируемый текст",
+        "PSD",
+        "копия растра",
+        "обычная Content-Aware Fill на отдельном слое"
+      ],
+      "limits": [
+        "Windows COM выбирает фактическую зарегистрированную версию",
+        "дополнительная панель требует подписанной установки",
+        "платная Generative Fill и исправление реестра не выполнялись"
+      ],
+      "tests": [
+        "desktop/tests/live-adobe.mjs photoshop",
+        "desktop/tests/live-photoshop-cleanup.mjs"
+      ],
+      "macos": {
+        "channel": "Apple Events (do javascript)",
+        "nativeSmoke": "passed",
+        "observedVersion": "27.4.0",
+        "verified": [
+          "статус и инспекция",
+          "новый документ и текст с кириллицей",
+          "дубль слоя",
+          "копия растра",
+          "обычная Content-Aware Fill",
+          "PNG через Save for Web с исходным именем файла"
+        ],
+        "limits": [
+          "PSD из скрипта отклоняется: Photoshop зависает при внешнем saveAs",
+          "нужно разрешение «Автоматизация»"
+        ]
+      }
+    },
+    "illustrator": {
+      "implementation": "original-windows-com",
+      "nativeSmoke": "passed",
+      "observedVersion": "28.0.0",
+      "verified": [
+        "текст и AI",
+        "настоящая обводка растра с раскрытыми векторами",
+        "SVG содержит три векторных элемента без растровой подмены"
+      ],
+      "test": "desktop/tests/live-vectorize.mjs",
+      "macos": {
+        "channel": "Apple Events (do javascript)",
+        "nativeSmoke": "not-run",
+        "limits": [
+          "с живым Illustrator не проверялся",
+          "нужно разрешение «Автоматизация»"
+        ]
+      }
+    },
+    "resolve": {
+      "implementation": "original-official-sdk-wrapper",
+      "nativeSmoke": "passed",
+      "observedVersion": "Studio 21.1.0.17",
+      "verified": [
+        "изолированный проект и восстановление исходного",
+        "импорт,создание и дополнение таймлайна",
+        "отказ от устаревшего контекста",
+        "CDL и установленный LUT",
+        "полный H264-рендер и настоящий MP4",
+        "сохранение проекта"
+      ],
+      "limits": [
+        "нужны актуальные идентификаторы проекта/таймлайна",
+        "запускаются только задания своей сессии",
+        "восстановление только ранее просмотренного проекта",
+        "произвольные цветовые графы и обход лицензии не предусмотрены"
+      ],
+      "test": "desktop/tests/live-resolve.mjs"
+    },
+    "afterEffects": {
+      "implementation": "original-closed-jsx-host-and-authenticated-cep-plus-optional-native-launch",
+      "nativeSmoke": "blocked",
+      "contractTests": "passed",
+      "observedBlocker": "Приложение показывает Crash Repair Options и сообщает,что Scripting plugin не установлен",
+      "limits": [
+        "нужен рабочий модуль скриптов и право записи",
+        "Windows AfterFX -r; macOS Apple Event DoScriptFile",
+        "контекст включает экземпляр проекта,файл и версию",
+        "кадр требует актуальный context и compId",
+        "настройки/безопасность автоматически не меняются"
+      ],
+      "test": "desktop/tests/panel-contracts.test.mjs",
+      "macos": {
+        "channel": "Apple Event DoScriptFile",
+        "nativeSmoke": "blocked",
+        "observedBlocker": "В Settings → Scripting & Expressions выключено «Allow Scripts to Write Files and Access Network»; команда доходит до программы, квитанция записать нельзя",
+        "limits": [
+          "настройка безопасности автоматически не меняется"
+        ]
+      }
+    },
+    "premiere": {
+      "implementation": "original-authenticated-cep-and-closed-jsx-host",
+      "nativeSmoke": "not-run",
+      "contractTests": "passed",
+      "observedVersion": "25.0.0",
+      "observedBlocker": "Подписанная панель не установлена/не открыта на тестовой машине",
+      "implemented": [
+        "проверка проекта и папок",
+        "создание/перенос папок,импорт",
+        "создание и дополнение последовательности",
+        "сохранение новым файлом",
+        "прямой MP4-экспорт по предоставленному EPR",
+        "проверяемое восстановление исходного запроса после таймаута"
+      ],
+      "limits": [
+        "панель для24.0–25.5",
+        "нужны подписанная установка и сопряжение",
+        "после отправки неизвестный результат блокирует повторную правку"
+      ],
+      "test": "desktop/tests/panel-contracts.test.mjs"
+    },
+    "touchdesigner": {
+      "implementation": "original-authenticated-owned-component",
+      "nativeSmoke": "not-run",
+      "contractTests": "passed",
+      "observedBlocker": "Приложение не найдено на тестовой машине",
+      "implemented": [
+        "ограниченные узлы,параметры и соединения",
+        "новый редактируемый .tox своего компонента"
+      ],
+      "limits": [
+        "нужны приложение,лицензия и явный запуск подключения",
+        "открытый .toe не сохраняется",
+        "произвольный Python и закрытые Workshop-пресеты не предусмотрены"
+      ],
+      "test": "desktop/tests/touchdesigner_logic.py"
+    }
+  }
+}

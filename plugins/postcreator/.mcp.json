@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "postcreator": { "type": "http", "url": "https://post-creator.ru/mcp/agent" }
+  }
+}

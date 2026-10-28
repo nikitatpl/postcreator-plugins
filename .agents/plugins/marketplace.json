@@ -1,0 +1,31 @@
+{
+  "name": "itsalab-creative",
+  "interface": {
+    "displayName": "Творческие инструменты Itsalab"
+  },
+  "plugins": [
+    {
+      "name": "postcreator",
+      "source": {
+        "source": "local",
+        "path": "./plugins/postcreator"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Creativity"
+    },
+    {
+      "name": "postcreator-desktop",
+      "source": {
+        "source": "local",
+        "path": "./plugins/postcreator-desktop"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Creativity"
+    }
+  ]
+}

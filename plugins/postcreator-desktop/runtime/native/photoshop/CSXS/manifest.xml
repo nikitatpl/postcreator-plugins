@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="7.0" ExtensionBundleId="ru.postcreator.photoshop" ExtensionBundleVersion="1.1.1" ExtensionBundleName="Postcreator Photoshop">
+ <ExtensionList><Extension Id="ru.postcreator.photoshop.panel" Version="1.1.1"/></ExtensionList>
+ <ExecutionEnvironment><HostList><Host Name="PHXS" Version="[25.0,99.9]"/></HostList><LocaleList><Locale Code="All"/></LocaleList><RequiredRuntimeList><RequiredRuntime Name="CSXS" Version="11.0"/></RequiredRuntimeList></ExecutionEnvironment>
+ <DispatchInfoList><Extension Id="ru.postcreator.photoshop.panel"><DispatchInfo><Resources><MainPath>./index.html</MainPath><ScriptPath>./host.jsx</ScriptPath><CEFCommandLine><Parameter>--enable-nodejs</Parameter><Parameter>--mixed-context</Parameter></CEFCommandLine></Resources><Lifecycle><AutoVisible>false</AutoVisible></Lifecycle><UI><Type>Panel</Type><Menu>Postcreator Photoshop</Menu><Geometry><Size><Width>400</Width><Height>230</Height></Size></Geometry></UI></DispatchInfo></Extension></DispatchInfoList>
+</ExtensionManifest>

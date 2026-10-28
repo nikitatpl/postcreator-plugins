@@ -1,0 +1,47 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "postcreator",
+  "version": "1.2.1",
+  "description": "Создание изображений, видео, историй, UGC, маркетинговых материалов, субтитров и анимации через Postcreator.",
+  "author": {
+    "name": "Itsalab",
+    "url": "https://post-creator.ru"
+  },
+  "homepage": "https://post-creator.ru",
+  "repository": "https://github.com/nikitatpl/postcreator",
+  "keywords": [
+    "creative",
+    "image",
+    "video",
+    "audio",
+    "3d",
+    "canvas",
+    "story",
+    "montage"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Postcreator",
+        "shortDescription": "Создание медиа и рекламных материалов",
+        "longDescription": "Создавайте изображения, видео, истории, UGC, обложки и рекламные материалы через свой аккаунт Postcreator. Ассистент использует действующие модели, проверяет стоимость в рублях и получает готовые файлы. Для локальных редакторов предусмотрен отдельный модуль Postcreator Desktop.",
+        "developerName": "Itsalab",
+        "category": "Creativity",
+        "capabilities": [
+          "Read",
+          "Write",
+          "Generate media"
+        ],
+        "websiteURL": "https://post-creator.ru",
+        "defaultPrompt": [
+          "Сделай ролик с товаром и русской закадровой озвучкой",
+          "Собери историю с русскими субтитрами",
+          "Подготовь три рекламных варианта и покажи общий бюджет"
+        ],
+        "brandColor": "#7057F5",
+        "logo": "./assets/icon.svg",
+        "composerIcon": "./assets/icon.svg"
+      }
+    }
+  }
+}
