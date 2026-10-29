@@ -26,6 +26,17 @@
         "installation": "AVAILABLE"
       },
       "category": "Creativity"
+    },
+    {
+      "name": "postcreator-motion",
+      "source": {
+        "source": "local",
+        "path": "./plugins/postcreator-motion"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Creativity"
     }
   ]
 }

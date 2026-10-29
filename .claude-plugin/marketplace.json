@@ -16,6 +16,11 @@
       "name": "postcreator-desktop",
       "source": "./plugins/postcreator-desktop",
       "description": "Локальные сцены и редакторы; нужны Node24 и установленные программы"
+    },
+    {
+      "name": "postcreator-motion",
+      "source": "./plugins/postcreator-motion",
+      "description": "Локальный монтаж: анимированные перебивки, 3D-карточки и субтитры к говорящей голове, монтаж по референсу; нужны Node22 и FFmpeg"
     }
   ]
 }

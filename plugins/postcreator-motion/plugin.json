@@ -1,0 +1,43 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "postcreator-motion",
+  "version": "0.1.0",
+  "description": "Локальный монтаж на компьютере пользователя: анимированные перебивки, 3D-карточки и субтитры к видео с говорящим — сцены рисуются под ролик и не закрывают людей; монтаж по референсу.",
+  "author": {
+    "name": "Itsalab",
+    "url": "https://post-creator.ru"
+  },
+  "homepage": "https://post-creator.ru",
+  "keywords": [
+    "motion",
+    "montage",
+    "hyperframes",
+    "infographics",
+    "talking-head",
+    "reference-edit"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Postcreator — монтаж и моушн",
+        "shortDescription": "Перебивки и монтаж по референсу на компьютере",
+        "longDescription": "Добавляйте к видео с говорящим анимированные перебивки и 3D-карточки, которые агент рисует под ваш ролик и ставит на нужные слова, и субтитры, если их нет; графика не закрывает людей в кадре. Монтируйте свой материал по ритму и приёмам понравившегося ролика. Видео собирается и рендерится на компьютере (FFmpeg, whisper.cpp, HyperFrames); недостающие кадры генерируются в Postcreator по согласованной цене.",
+        "developerName": "Itsalab",
+        "category": "Creativity",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://post-creator.ru",
+        "defaultPrompt": [
+          "Добавь инфографику к моему видео с говорящей головой",
+          "Смонтируй мои клипы как в этом ролике",
+          "Проверь, всё ли установлено для монтажа"
+        ],
+        "brandColor": "#8CE874",
+        "logo": "./assets/icon.svg",
+        "composerIcon": "./assets/icon.svg"
+      }
+    }
+  }
+}

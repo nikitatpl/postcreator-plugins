@@ -12,13 +12,17 @@ const HOST = fileURLToPath(new URL('../native/after-effects/host.jsx', import.me
 const MAX_REQUEST = 64 * 1024, MAX_RECEIPT = 1024 * 1024;
 const ALLOWED = new Set([...Object.keys(AE_NATIVE_OPS), 'project.inspect', 'project.save', 'render.frame']);
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+// The host dispatches only after writing its `started` receipt and re-checking the deadline, so a request
+// without any receipt this long after its deadline never ran and never will: it is released, not retried.
+export const AE_EXPIRY_GRACE_MS = 5000;
 const literal = value => JSON.stringify(value).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 export class AEUncertainExecutionError extends Error {
-  constructor(pending) {
-    super('After Effects has not returned a correlated native receipt. Inspect/recover the pending request before any new operation; no app was killed or scripting security changed. If After Effects never starts the script, enable Settings > Scripting & Expressions > "Allow Scripts to Write Files and Access Network" (Preferences on macOS); the companion never changes it.');
+  constructor(pending, graceMs = AE_EXPIRY_GRACE_MS) {
+    const releaseAt = pending.expiresAt + graceMs;
+    super(`After Effects has not returned a correlated native receipt. Inspect/recover the pending request before any new operation; no app was killed or scripting security changed. If After Effects never starts the script, enable Settings > Scripting & Expressions > "Allow Scripts to Write Files and Access Network" (Preferences on macOS); the companion never changes it. A request that never started is released after ${new Date(releaseAt).toISOString()}.`);
     this.name = 'AEUncertainExecutionError'; this.code = 'ae_execution_uncertain';
-    this.requestId = pending.nonce; this.operation = pending.request.operation; this.expiresAt = pending.expiresAt;
+    this.requestId = pending.nonce; this.operation = pending.request.operation; this.expiresAt = pending.expiresAt; this.releaseAt = releaseAt;
   }
 }
 function validatePlain(value, depth = 0) {
@@ -88,15 +92,16 @@ function launch(executable, script, platform = process.platform) {
 }
 
 export class AEScriptTransport {
-  constructor(executable, { timeoutMs = 15000, pollMs = 100, platform = process.platform, launchProcess = (exe, script) => launch(exe, script, platform), now = Date.now } = {}) {
+  constructor(executable, { timeoutMs = 15000, pollMs = 100, platform = process.platform, launchProcess = (exe, script) => launch(exe, script, platform), now = Date.now, expiryGraceMs = AE_EXPIRY_GRACE_MS } = {}) {
     if (typeof executable !== 'string' || !path.isAbsolute(executable)) throw Error('Discovered absolute AfterFX executable required');
     if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 180000) throw Error('Invalid AE receipt timeout');
-    this.executable = executable; this.timeoutMs = timeoutMs; this.pollMs = pollMs; this.launchProcess = launchProcess; this.now = now; this.platform = platform; this.pending = null; this.closed = false;
+    if (!Number.isSafeInteger(expiryGraceMs) || expiryGraceMs < 1000) throw Error('Invalid AE expiry grace');
+    this.executable = executable; this.timeoutMs = timeoutMs; this.pollMs = pollMs; this.launchProcess = launchProcess; this.now = now; this.platform = platform; this.expiryGraceMs = expiryGraceMs; this.pending = null; this.closed = false;
   }
   async request(operation, args = {}) {
     if (this.closed) throw Error('AE script transport is closed');
     if (this.platform !== 'win32' && this.platform !== 'darwin') throw Error('Native After Effects scripting is supported on Windows (AfterFX.exe -r) and macOS (DoScriptFile Apple Event) only; use an actually configured native platform bridge.');
-    if (this.pending) throw new AEUncertainExecutionError(this.pending);
+    if (this.pending) throw new AEUncertainExecutionError(this.pending, this.expiryGraceMs);
     if (!ALLOWED.has(operation)) throw Error('Unknown original AE operation');
     const request = { operation, args }; validatePlain(request);
     const nonce = randomUUID(), directory = await mkdtemp(path.join(tmpdir(), 'postcreator-ae-script-'));
@@ -115,7 +120,7 @@ export class AEScriptTransport {
         if (recovered.state !== 'pending') return this.result(recovered);
         await wait(this.pollMs);
       }
-      throw new AEUncertainExecutionError(pending);
+      throw new AEUncertainExecutionError(pending, this.expiryGraceMs);
     } catch (error) {
       // Before launch, non-execution is proven; after launch, retain uncertainty and files.
       if (!pending.launch && this.pending === pending) { this.pending = null; await this.cleanup(pending); }
@@ -131,6 +136,13 @@ export class AEScriptTransport {
       if (!info.isFile() || info.size > MAX_RECEIPT) throw Error('Invalid bounded AE receipt');
       receipt = JSON.parse((await readFile(pending.receiptPath, 'utf8')).replace(/^\uFEFF/, ''));
     } catch (error) {
+      // No receipt at all well past the deadline: the script never wrote `started`, so it never dispatched,
+      // and a late run stops at its own deadline check. A half-written receipt is still being written: wait.
+      if (error?.code === 'ENOENT' && this.now() > pending.expiresAt + this.expiryGraceMs) {
+        this.pending = null;
+        await this.cleanup(pending);
+        return { state: 'expired', requestId: pending.nonce, operation: pending.request.operation, expiresAt: pending.expiresAt, released: true };
+      }
       if (error?.code === 'ENOENT' || error instanceof SyntaxError) return { state: 'pending', requestId: pending.nonce, operation: pending.request.operation, expiresAt: pending.expiresAt };
       throw error;
     }
@@ -168,7 +180,7 @@ export class AEScriptAdapter extends AEPanelAdapter {
       const fingerprint = JSON.stringify({ operation, args });
       if (this.transport.pending) {
         const receipt = await this.transport.recover();
-        if (receipt.state === 'pending') throw new AEUncertainExecutionError(this.transport.pending);
+        if (receipt.state === 'pending') throw new AEUncertainExecutionError(this.transport.pending, this.transport.expiryGraceMs);
         if (operation === 'status') {
           if (receipt.state === 'failed' || receipt.response?.error) this.transport.result(receipt);
           // A recovered mutation receipt is not proof of a fresh native status handshake.
@@ -176,8 +188,11 @@ export class AEScriptAdapter extends AEPanelAdapter {
           const status = await super.call('status', args);
           return { ...status, recoveredRequest: { requestId: receipt.requestId, operation: receipt.operation, state: receipt.state } };
         }
-        if (fingerprint === this.pendingCall) return this.transport.result(receipt);
-        throw Error('Previous native request recovered; inspect its completion before a different operation');
+        // An expired request provably never dispatched: there is nothing to inspect, the new call goes ahead.
+        if (receipt.state !== 'expired') {
+          if (fingerprint === this.pendingCall) return this.transport.result(receipt);
+          throw Error('Previous native request recovered; inspect its completion before a different operation');
+        }
       }
       this.pendingCall = fingerprint;
       const result = await super.call(operation, args);

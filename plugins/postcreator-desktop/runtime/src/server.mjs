@@ -32,9 +32,10 @@ const textResult = data => ({content:[{type:'text',text:JSON.stringify(data,null
 export function serializeDesktopError(error) {
   const original = typeof error?.message === 'string' ? error.message : String(error);
   if (error?.code === 'ae_execution_uncertain' || error?.code === 'native_execution_uncertain') {
-    const message = `Приложение ещё не подтвердило результат операции ${error.operation ?? 'исходного запроса'} (requestId: ${error.requestId ?? 'не получен'}). Сохраните requestId и дождитесь её подтверждения; проверьте состояние через pc_desktop_status с live=true и тем же app. Не повторяйте изменение, пока результат исходного запроса не восстановлен и не проверен.`;
+    const released = Number.isFinite(error.releaseAt) ? ` Если приложение так и не начало её выполнять, запрос снимется сам после ${new Date(error.releaseAt).toISOString()}: следующий вызов после этого времени пройдёт.` : '';
+    const message = `Приложение ещё не подтвердило результат операции ${error.operation ?? 'исходного запроса'} (requestId: ${error.requestId ?? 'не получен'}). Сохраните requestId и дождитесь её подтверждения; проверьте состояние через pc_desktop_status с live=true и тем же app. Не повторяйте изменение, пока результат исходного запроса не восстановлен и не проверен.${released}`;
     return {content:[{type:'text',text:message},{type:'text',text:'Исходная диагностика приложения: '+original}],isError:true,
-      structuredContent:{ok:false,error:{code:error.code,operation:error.operation,requestId:error.requestId,expiresAt:error.expiresAt,message}}};
+      structuredContent:{ok:false,error:{code:error.code,operation:error.operation,requestId:error.requestId,expiresAt:error.expiresAt,...(Number.isFinite(error.releaseAt)?{releaseAt:error.releaseAt}:{}),message}}};
   }
   return {content:[
     {type:'text',text:'Не удалось выполнить операцию локального дополнения. Проверьте подключение и параметры по каталогу; исходная диагностика приведена ниже.'},
@@ -94,7 +95,7 @@ export async function serve({ input = process.stdin, output = process.stdout, co
     if (!Object.hasOwn(request,'id')) return;
     try {
       let result;
-      if (request.method === 'initialize') result = {protocolVersion:request.params?.protocolVersion || '2024-11-05',capabilities:{tools:{}},serverInfo:{name:'postcreator-desktop',version:'1.2.0'}};
+      if (request.method === 'initialize') result = {protocolVersion:request.params?.protocolVersion || '2024-11-05',capabilities:{tools:{}},serverInfo:{name:'postcreator-desktop',version:'1.2.1'}};
       else if (request.method === 'ping') result = {};
       else if (request.method === 'tools/list') result = {tools:TOOLS};
       else if (request.method === 'tools/call') {try {result = await companion.tool(request.params?.name,request.params?.arguments);} catch (error) {result = serializeDesktopError(error);}}
