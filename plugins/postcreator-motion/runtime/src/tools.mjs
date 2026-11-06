@@ -1,9 +1,11 @@
 /**
  * External tools the kit drives: ffmpeg/ffprobe, whisper.cpp and the pinned
- * HyperFrames CLI. Every call goes through run(), which never uses a shell,
- * so file names with spaces or quotes are passed as they are.
+ * HyperFrames CLI. Every call goes through run(), which uses no shell, so
+ * file names with spaces or quotes are passed as they are — on Windows too,
+ * where npx is a batch file (see launch()).
  */
 import { spawn } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { access, constants } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -21,11 +23,32 @@ export class MotionError extends Error {
   }
 }
 
-/** Where tools usually live when an app was not started from a login shell. */
-const EXTRA_DIRS = ['/opt/homebrew/bin', '/usr/local/bin', path.join(os.homedir(), '.local', 'bin')]
+/** Where doctor tells Windows users to unpack whisper.cpp, so no PATH change is needed. */
+export function whisperBinDir(home = os.homedir()) {
+  return path.join(home, '.cache', 'whisper-cpp', 'bin')
+}
+
+/**
+ * Where tools usually live when the agent's app was not started from a login
+ * shell, or was started before an install changed PATH: on Windows a running
+ * app keeps the PATH it started with, so a fresh winget install is not on it.
+ */
+export function extraDirs(platform = process.platform, env = process.env, home = os.homedir()) {
+  if (platform !== 'win32') return ['/opt/homebrew/bin', '/usr/local/bin', path.join(home, '.local', 'bin')]
+  const local = env.LOCALAPPDATA || path.win32.join(home, 'AppData', 'Local')
+  const programs = env.ProgramFiles || 'C:\\Program Files'
+  const whisper = whisperBinDir(home)
+  return [
+    path.win32.join(local, 'Microsoft', 'WinGet', 'Links'),
+    path.win32.join(programs, 'FFmpeg', 'bin'),
+    'C:\\ffmpeg\\bin',
+    whisper,
+    path.win32.join(whisper, 'Release'),
+  ]
+}
 
 export async function which(name) {
-  const dirs = [...(process.env.PATH ?? '').split(path.delimiter), ...EXTRA_DIRS].filter(Boolean)
+  const dirs = [...(process.env.PATH ?? '').split(path.delimiter), ...extraDirs()].filter(Boolean)
   const names = process.platform === 'win32' ? [`${name}.exe`, `${name}.cmd`, name] : [name]
   for (const dir of dirs) {
     for (const candidate of names) {
@@ -54,6 +77,33 @@ export async function tool(name) {
   return found
 }
 
+/** A cmd.exe argument: quoted, with its own quotes doubled. */
+const cmdQuote = value => `"${String(value).replace(/"/g, '""')}"`
+
+/**
+ * How to start a program. Node refuses to spawn a .cmd or .bat file on
+ * Windows without a shell (EINVAL, since the April 2024 security releases),
+ * and npx and npm are npx.cmd and npm.cmd there. Their launcher scripts sit in
+ * node_modules/npm/bin next to them (or next to node.exe), so they run as
+ * `node npx-cli.js …` with no shell at all. Any other batch file goes through
+ * cmd.exe with every argument quoted.
+ */
+export function launch(command, args, { platform = process.platform, exists = existsSync, node = process.execPath } = {}) {
+  if (platform !== 'win32') return { command, args, shell: false }
+  const batch = /\.(cmd|bat)$/i.test(command)
+  const name = path.win32.basename(command).replace(/\.(cmd|bat)$/i, '').toLowerCase()
+  if (name === 'npx' || name === 'npm') {
+    // A bare "npx" (not found on PATH) is looked up next to node.exe.
+    const dirs = batch ? [path.win32.dirname(command), path.win32.dirname(node)] : [path.win32.dirname(node)]
+    for (const dir of dirs) {
+      const cli = path.win32.join(dir, 'node_modules', 'npm', 'bin', `${name}-cli.js`)
+      if (exists(cli)) return { command: node, args: [cli, ...args], shell: false }
+    }
+  }
+  if (!batch) return { command, args, shell: false }
+  return { command: cmdQuote(command), args: args.map(cmdQuote), shell: true }
+}
+
 /**
  * Run a program and collect its output. Resolves with the exit code; a
  * program that cannot start rejects with tool_missing.
@@ -62,7 +112,14 @@ export function run(command, args, { cwd, input, timeoutMs = 30 * 60_000, env, o
   return new Promise((resolve, reject) => {
     let child
     try {
-      child = spawn(command, args, { cwd, env: env ? { ...process.env, ...env } : process.env, stdio: ['pipe', 'pipe', 'pipe'] })
+      const start = launch(command, args)
+      child = spawn(start.command, start.args, {
+        cwd,
+        env: env ? { ...process.env, ...env } : process.env,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        shell: start.shell,
+        windowsHide: true,
+      })
     } catch (error) {
       reject(new MotionError('tool_missing', `Не удалось запустить ${command}: ${error.message}`))
       return

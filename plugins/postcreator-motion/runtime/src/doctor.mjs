@@ -10,7 +10,7 @@ import { mkdir, readdir, stat } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 
-import { firstJson, hyperframesArgs, npx, run, which } from './tools.mjs'
+import { firstJson, hyperframesArgs, npx, run, which, whisperBinDir } from './tools.mjs'
 
 const MODEL_URL = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin'
 const MODEL_MIN_BYTES = 400 * 1024 * 1024
@@ -60,7 +60,8 @@ async function version(file, args = ['-version']) {
 /** Install steps per platform. auto=true steps doctor may run itself after consent. */
 export function installPlan(platform, missing, hasBrew) {
   const plan = []
-  const need = name => missing.has(name)
+  // ffprobe ships with FFmpeg: a missing ffprobe is fixed by the FFmpeg step.
+  const need = name => missing.has(name) || (name === 'ffmpeg' && missing.has('ffprobe'))
   if (platform === 'darwin') {
     if (!hasBrew && (need('node') || need('ffmpeg') || need('whisper-cli'))) {
       plan.push({ name: 'homebrew', auto: false, command: '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"', why: 'Менеджер пакетов для остальных шагов; ставится вручную, он спросит пароль.' })
@@ -70,8 +71,8 @@ export function installPlan(platform, missing, hasBrew) {
     if (need('whisper-cli')) plan.push({ name: 'whisper-cli', auto: hasBrew, command: 'brew install whisper-cpp', why: 'Расшифровка речи с таймкодами слов.' })
   } else if (platform === 'win32') {
     if (need('node')) plan.push({ name: 'node', auto: false, command: 'winget install OpenJS.NodeJS.LTS', why: 'HyperFrames и pc-motion работают на Node 22+.' })
-    if (need('ffmpeg')) plan.push({ name: 'ffmpeg', auto: false, command: 'winget install Gyan.FFmpeg', why: 'Нарезка, звук, прокси и проверка рендера.' })
-    if (need('whisper-cli')) plan.push({ name: 'whisper-cli', auto: false, command: 'Скачайте whisper-bin-x64.zip со страницы https://github.com/ggml-org/whisper.cpp/releases и добавьте папку в PATH', why: 'Расшифровка речи с таймкодами слов.' })
+    if (need('ffmpeg')) plan.push({ name: 'ffmpeg', auto: false, command: 'winget install Gyan.FFmpeg', why: 'Нарезка, звук, прокси и проверка рендера; ffprobe ставится вместе с ним. pc-motion ищет его и в папке ссылок winget, поэтому перезапуск приложения агента обычно не нужен.' })
+    if (need('whisper-cli')) plan.push({ name: 'whisper-cli', auto: false, command: `Скачайте whisper-bin-x64.zip со страницы https://github.com/ggml-org/whisper.cpp/releases и распакуйте в ${whisperBinDir()}`, why: 'Расшифровка речи с таймкодами слов; из этой папки pc-motion берёт его без правки PATH.' })
   } else {
     if (need('node')) plan.push({ name: 'node', auto: false, command: 'Установите Node 22+ с https://nodejs.org или через nvm', why: 'HyperFrames и pc-motion работают на Node 22+.' })
     if (need('ffmpeg')) plan.push({ name: 'ffmpeg', auto: false, command: 'sudo apt-get install -y ffmpeg', why: 'Нарезка, звук, прокси и проверка рендера.' })

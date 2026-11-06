@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "postcreator-motion",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Локальный монтаж на компьютере пользователя: анимированные перебивки, 3D-карточки и субтитры к видео с говорящим — сцены рисуются под ролик и не закрывают людей; монтаж по референсу.",
   "author": {
     "name": "Itsalab",
